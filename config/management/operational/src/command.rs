@@ -2,8 +2,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::{
-    account_resource::SimplifiedAccountResource, validator_config::DecryptedValidatorConfig,
-    validator_set::DecryptedValidatorInfo, TransactionContext,
+    account_resource::SimplifiedAccountResource,
+    TransactionContext,
+    validator_config::DecryptedValidatorConfig,
+    validator_set::DecryptedValidatorInfo,
+    verify_validator_state::VerifyValidatorState,
 };
 use diem_config::config::Peer;
 use diem_crypto::{ed25519::Ed25519PublicKey, x25519};
@@ -72,6 +75,8 @@ pub enum Command {
     ValidatorConfig(crate::validator_config::ValidatorConfig),
     #[structopt(about = "Displays the current validator set infos registered on the blockchain")]
     ValidatorSet(crate::validator_set::ValidatorSet),
+    #[structopt(about = "Verifies the latest state of current validator")]
+    VerifyValidatorState(crate::verify_validator_state::VerifyValidatorState),
 }
 
 #[derive(Debug, PartialEq)]
@@ -103,6 +108,7 @@ pub enum CommandName {
     ValidateTransaction,
     ValidatorConfig,
     ValidatorSet,
+    VerifyValidatorState,
 }
 
 impl From<&Command> for CommandName {
@@ -135,6 +141,7 @@ impl From<&Command> for CommandName {
             Command::ValidateTransaction(_) => CommandName::ValidateTransaction,
             Command::ValidatorConfig(_) => CommandName::ValidatorConfig,
             Command::ValidatorSet(_) => CommandName::ValidatorSet,
+            Command::VerifyValidatorState(_) => CommandName::VerifyValidatorState,
         }
     }
 }
@@ -169,6 +176,7 @@ impl std::fmt::Display for CommandName {
             CommandName::ValidateTransaction => "validate-transaction",
             CommandName::ValidatorConfig => "validator-config",
             CommandName::ValidatorSet => "validator-set",
+            CommandName::VerifyValidatorState => "verify-validator-state",
         };
         write!(f, "{}", name)
     }
@@ -216,6 +224,7 @@ impl Command {
             Command::ValidateTransaction(cmd) => Self::print_transaction_context(cmd.execute()),
             Command::ValidatorConfig(cmd) => Self::pretty_print(cmd.execute()),
             Command::ValidatorSet(cmd) => Self::pretty_print(cmd.execute()),
+            Command::VerifyValidatorState(cmd) => Self::pretty_print(cmd.execute()),
         }
     }
 
@@ -419,6 +428,10 @@ impl Command {
 
     pub fn validator_set(self) -> Result<Vec<DecryptedValidatorInfo>, Error> {
         execute_command!(self, Command::ValidatorSet, CommandName::ValidatorSet)
+    }
+
+    pub fn verify_validator_state(self) -> Result<bool, Error> {
+        execute_command!(self, Command::VerifyValidatorState, CommandName::VerifyValidatorState)
     }
 }
 

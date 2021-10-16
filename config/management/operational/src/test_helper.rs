@@ -7,6 +7,7 @@ use crate::{
     keys::{load_key, EncodingType, KeyType},
     validator_config::DecryptedValidatorConfig,
     validator_set::DecryptedValidatorInfo,
+    verify_validator_state::VerifyValidatorState,
     TransactionContext,
 };
 use diem_config::{config, config::Peer, network_id::NetworkId};
@@ -437,6 +438,33 @@ impl OperationalTool {
         command.set_validator_config()
     }
 
+    pub fn verify_validator_state(
+        &self,
+        backend: &config::SecureBackend,
+        validator_address: Option<NetworkAddress>,
+        fullnode_address: Option<NetworkAddress>,
+    ) -> Result<bool, Error> {
+        let args = format!(
+            "
+                {command}
+                {fullnode_address}
+                {validator_address}
+                --chain-id {chain_id}
+                --json-server {host}
+                --validator-backend {backend_args}
+            ",
+            command = command(TOOL_NAME, CommandName::VerifyValidatorState),
+            host = self.host,
+            chain_id = self.chain_id.id(),
+            fullnode_address = optional_arg("fullnode-address", fullnode_address),
+            validator_address = optional_arg("validator-address", validator_address),
+            backend_args = backend_args(backend)?,
+        );
+
+        let command = Command::from_iter(args.split_whitespace());
+        command.verify_validator_state()
+    }
+
     fn rotate_key<T>(
         &self,
         backend: &config::SecureBackend,
@@ -744,7 +772,7 @@ fn backend_args(backend: &config::SecureBackend) -> Result<String, Error> {
                 path = config.path.to_str().unwrap(),
             );
             if let Some(namespace) = config.namespace.as_ref() {
-                s.push_str(&format!(";namespace={}", namespace));
+                s.push_str(format!(";namespace={}", namespace).as_str());
             }
 
             Ok(s)

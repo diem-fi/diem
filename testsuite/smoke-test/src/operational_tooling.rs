@@ -8,7 +8,7 @@ use crate::{
         write_key_to_file_bcs_format, write_key_to_file_hex_format,
     },
 };
-use anyhow::{bail, Result};
+use anyhow::bail;
 use diem_config::{
     config::{PeerRole, SecureBackend},
     network_id::NetworkId,
@@ -836,7 +836,7 @@ fn test_print_waypoints() {
     let waypoint = op_tool.print_waypoint(WAYPOINT, &backend).unwrap();
     assert_eq!(inserted_waypoint, waypoint);
 
-    // Print the gensis waypoint
+    // Print the genesis waypoint
     let genesis_waypoint = op_tool.print_waypoint(GENESIS_WAYPOINT, &backend).unwrap();
     assert_eq!(inserted_waypoint, genesis_waypoint);
 }
@@ -1027,6 +1027,49 @@ fn test_validator_set() {
     );
 }
 
+#[test]
+fn test_verify_validator_state() {
+    let (_env, op_tool, backend, mut storage) = launch_swarm_with_op_tool_and_backend(1);
+
+    // get operator's account address
+    let operator_account = op_tool.print_account(OPERATOR_ACCOUNT, &backend).unwrap();
+    let validator_config = op_tool.validator_config(operator_account, Some(&backend)).unwrap();
+    let init_result = op_tool.verify_validator_state(
+        &backend,
+        Some(validator_config.validator_network_address),
+        Some(validator_config.fullnode_network_address),
+    ).unwrap();
+    assert_eq!(true, init_result);
+
+     // Rotate the consensus key
+    // let (txn_ctx, new_consensus_key) = op_tool.rotate_consensus_key(&backend, false).unwrap();
+    // assert_eq!(VMStatusView::Executed, txn_ctx.execution_result.unwrap());
+
+    // Verify that the config has been updated correctly with the new consensus key
+    // let validator_account = storage.get::<AccountAddress>(OWNER_ACCOUNT).unwrap().value;
+    // let config_consensus_key = op_tool
+    //     .validator_config(validator_account, Some(&backend))
+    //     .unwrap()
+    //     .consensus_public_key;
+    // assert_eq!(new_consensus_key, config_consensus_key);
+
+    // Verify that the validator set info contains the new consensus key
+    // let info_consensus_key = op_tool
+    //     .validator_set(Some(validator_account), Some(&backend))
+    //     .unwrap()[0]
+    //     .consensus_public_key
+    //     .clone();
+    // assert_eq!(new_consensus_key, info_consensus_key);
+
+    // Rotate the consensus key in storage manually and perform another rotation using the op_tool.
+    // Here, we expected the op_tool to see that the consensus key in storage doesn't match the one
+    // on-chain, and thus it should simply forward a transaction to the blockchain.
+    // let rotated_consensus_key = storage.rotate_key(CONSENSUS_KEY).unwrap();
+    // let (txn_ctx, new_consensus_key) = op_tool.rotate_consensus_key(&backend, true).unwrap();
+    // assert!(txn_ctx.execution_result.is_none());
+    // assert_eq!(rotated_consensus_key, new_consensus_key);
+}
+
 /// Creates a new account address and key for testing.
 fn create_new_test_account() -> (Ed25519PrivateKey, AccountAddress) {
     let mut rng = OsRng;
@@ -1169,7 +1212,7 @@ fn wait_for_account_sequence_number(
     client: &BlockingClient,
     address: AccountAddress,
     seq: u64,
-) -> Result<()> {
+) -> anyhow::Result<()> {
     const DEFAULT_WAIT_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(120);
 
     let start = std::time::Instant::now();
