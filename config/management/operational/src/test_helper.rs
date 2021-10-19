@@ -441,14 +441,10 @@ impl OperationalTool {
     pub fn verify_validator_state(
         &self,
         backend: &config::SecureBackend,
-        validator_address: Option<NetworkAddress>,
-        fullnode_address: Option<NetworkAddress>,
     ) -> Result<bool, Error> {
         let args = format!(
             "
                 {command}
-                {fullnode_address}
-                {validator_address}
                 --chain-id {chain_id}
                 --json-server {host}
                 --validator-backend {backend_args}
@@ -456,8 +452,6 @@ impl OperationalTool {
             command = command(TOOL_NAME, CommandName::VerifyValidatorState),
             host = self.host,
             chain_id = self.chain_id.id(),
-            fullnode_address = optional_arg("fullnode-address", fullnode_address),
-            validator_address = optional_arg("validator-address", validator_address),
             backend_args = backend_args(backend)?,
         );
 
